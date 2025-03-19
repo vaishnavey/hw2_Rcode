@@ -1,0 +1,336 @@
+---
+title: "BCB Homework 2"
+author: "Hannah Gates"
+output: html_document
+---
+I wanted the format of this R code to match my batch script from homework 1 so that the work flow will be similar.
+
+## Part I - Data Inspection and Processing
+
+### Install Necessary Packages
+
+### Before we begin, we install and load the necessary packages. (I had to do this because my RStudio had me install first)
+```{r}
+#install.packages(c("tidyr", "readr"))
+```
+
+### Load Libraries
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+```
+
+### Create copies of raw data (I always make copies just in case I accidently modify or delete soemthing I shouldn't have)
+```{r}
+# Create directories
+dir.create("raw_data", showWarnings = FALSE)
+
+# Backup raw data
+file.copy(c("fang_et_al_genotypes.txt", "snp_position.txt"), "raw_data/")
+```
+
+### Load Data - Fang and SNP (refer to https://www.rdocumentation.org/packages/readr/versions/2.1.5/topics/read_table and https://eeob-biodata.github.io/EEOB546-R/05-data-transformation/index.html and https://builtin.com/articles/pipe-in-r)
+```{r}
+# Load data
+fang_et_al_genotypes <- read.table("fang_et_al_genotypes.txt", header = TRUE, sep = "\t")
+snp_positions <- read.table("snp_position.txt", header = TRUE, sep = "\t")
+
+# Clean SNP positions (get SNP_ID, Chromosome, and Position)
+snp_clean <- snp_positions %>%
+  select(SNP_ID, Chromosome, Position)
+
+# Sort SNP data by SNP_ID
+sorted_snp <- snp_clean %>%
+  arrange(SNP_ID)
+
+# Save the sorted SNP data
+write.table(sorted_snp, "processed_data/sorted_snp.txt", sep = "\t", row.names = FALSE)
+```
+
+### Inspect Data - Contents and Structure of the data
+```{r}
+head(fang_et_al_genotypes)
+head(snp_positions)
+
+str(fang_et_al_genotypes)
+str(snp_positions)
+dim(fang_et_al_genotypes)
+dim(snp_positions)
+
+colnames(fang_et_al_genotypes)
+colnames(snp_positions)
+```
+
+### Part 1- Task 1: Clean and Merge Data
+
+#### Clean and merge the SNP position data with the genotype data. (https://eeob-biodata.github.io/EEOB546-R/05-data-transformation/index.html)
+```{r}
+snp_clean <- snp_positions %>%
+  select(SNP_ID, Chromosome, Position) %>%
+  arrange(SNP_ID)
+```
+
+#### Create output directories for their respective output files. This allows for the data to be separted according to where it came from ie Maize or Teosinte (refer to https://stackoverflow.com/questions/4216753/folder-management-with-r-check-existence-of-directory-and-create-it-if-it-does)
+```{r}
+# Create output directory for processed data
+dir.create("processed_data", showWarnings = FALSE)
+
+# Create directories for maize and teosinte data
+dir.create("processed_data/maize_data", showWarnings = FALSE)
+dir.create("processed_data/teosinte_data", showWarnings = FALSE)
+```
+
+### Part 1 - Task 2: Processing Maize and Teosinte Data
+
+#### Filter and process the maize data.
+```{r}
+# Filter maize genotypes (ZMMIL, ZMMLR, ZMMMR groups)
+maize_genotypes <- fang_et_al_genotypes %>%
+  filter(Group %in% c("ZMMIL", "ZMMLR", "ZMMMR"))
+
+# Transpose maize genotypes (exclude SNP_ID column)
+transposed_maize <- t(maize_genotypes[, -1])
+colnames(transposed_maize) <- maize_genotypes$SNP_ID
+
+# Convert transposed maize data (matrix) to a data frame
+transposed_maize_df <- as.data.frame(transposed_maize)
+
+# Add SNP_ID column from rownames of transposed data
+transposed_maize_df$SNP_ID <- rownames(transposed_maize_df)
+
+# Sort the transposed maize data by SNP_ID
+sorted_trans_maize <- transposed_maize_df[order(transposed_maize_df$SNP_ID), ]
+
+# Check the number of rows in both data frames
+nrow(snp_clean)  # SNP position data
+nrow(sorted_trans_maize)  # Transposed maize genotypes data
+
+# Merge the SNP positions and sorted maize genotypes by SNP_ID
+merged_maize <- inner_join(snp_clean, sorted_trans_maize, by = "SNP_ID")
+
+# Proceed with your data processing
+
+# Save the merged data
+write.table(merged_maize, "processed_data/maize_data/merged_maize.txt", sep = "\t", row.names = FALSE)
+```
+
+#### Filter and process teosinte data.
+```{r}
+# Filter teosinte genotypes (ZMPBA, ZMPIL, ZMPJA groups)
+teosinte_genotypes <- fang_et_al_genotypes %>%
+  filter(Group %in% c("ZMPBA", "ZMPIL", "ZMPJA"))
+
+# Transpose teosinte genotypes (exclude SNP_ID column)
+transposed_teosinte <- t(teosinte_genotypes[, -1])  # Exclude SNP_ID column
+colnames(transposed_teosinte) <- teosinte_genotypes$SNP_ID
+
+# Convert transposed teosinte data (matrix) to a data frame
+transposed_teosinte_df <- as.data.frame(transposed_teosinte)
+
+# Add SNP_ID column from rownames of transposed data
+transposed_teosinte_df$SNP_ID <- rownames(transposed_teosinte_df)
+
+# Sort the transposed teosinte data by SNP_ID
+sorted_trans_teosinte <- transposed_teosinte_df[order(transposed_teosinte_df$SNP_ID), ]
+
+# Check the number of rows in both data frames
+nrow(snp_clean)  # SNP position data
+nrow(sorted_trans_teosinte)  # Transposed teosinte genotypes data
+
+# Merge the SNP positions and sorted teosinte genotypes by SNP_ID
+merged_teosinte <- inner_join(snp_clean, sorted_trans_teosinte, by = "SNP_ID")
+
+# Proceed with your data processing (e.g., save the merged data)
+write.table(merged_teosinte, "processed_data/teosinte_data/merged_teosinte.txt", sep = "\t", row.names = FALSE)
+```
+
+#### Function to Process Group Data: Maize
+#### Parseing through chromosomes 1-10 and outputting files in to the maize_data directory (https://eeob-biodata.github.io/EEOB546-R/07-lists-and-functions/index.html and https://www.geeksforgeeks.org/apply-lapply-sapply-and-tapply-in-r/ and https://www.datacamp.com/tutorial/pipe-r-tutorial and https://www.datacamp.com/doc/r/sorting)
+```{r}
+process_maize_data <- function(maize_data) {
+  # Process data for increasing and decreasing position values (for chromosomes 1 to 10)
+  lapply(1:10, function(chr) {
+    # Filter for the chromosome (INCREASING position)
+    increasing_data <- merged_maize %>%
+      filter(Chromosome == chr) %>%
+      arrange(Position) %>%
+      mutate(across(starts_with("SNP"), ~ifelse(. == "unknown", "?", .)))  # Encode missing data with "?"
+    
+    # Write increasing data to file in processed_data/maize_data
+    write.table(increasing_data, file = paste0("processed_data/maize_data/ZMM_chr", chr, "_increase.txt"), 
+                sep = "\t", row.names = FALSE, col.names = TRUE)
+    
+    
+    # Filter for the chromosome (DECREASING position)
+    decreasing_data <- merged_maize %>%
+      filter(Chromosome == chr) %>%
+      arrange(desc(Position)) %>%
+      mutate(across(starts_with("SNP"), ~ifelse(. == "unknown", "-", .)))  # Encode missing data with "-"
+    
+    # Write decreasing data to file in processed_data/maize_data
+    write.table(decreasing_data, file = paste0("processed_data/maize_data/ZMM_chr", chr, "_decrease.txt"), 
+                sep = "\t", row.names = FALSE, col.names = TRUE)
+  })
+}
+```
+
+#### Function to Process Group Data: Teosinte
+#### Parseing through chromosomes 1-10 and outputting files in to the teosinte_data directory
+```{r}
+process_teosinte_data <- function(teosinte_data) {
+  # Loop over chromosomes 1 to 10 to create files for teosinte
+  lapply(1:10, function(chr) {
+    
+    # Filter the data for the current chromosome (INCREASING position)
+    increasing_data <- merged_teosinte %>%
+      filter(Chromosome == chr) %>%            # Keep only rows with the current chromosome
+      arrange(Position) %>%                    # Order SNPs by their position (increasing)
+      mutate(across(starts_with("SNP"), ~ifelse(. == "unknown", "?", .)))  # Replace "unknown" with "?"
+    
+    # Write the increasing data to a file for the current chromosome
+    write.table(increasing_data, file = paste0("processed_data/teosinte_data/ZMP_chr", chr, "_increase.txt"), 
+                sep = "\t", row.names = FALSE, col.names = TRUE)
+    
+    
+    # Filter the data for the current chromosome (DECREASING position)
+    decreasing_data <- merged_teosinte %>%
+      filter(Chromosome == chr) %>%            # Keep only rows with the current chromosome
+      arrange(desc(Position)) %>%              # Order SNPs by their position (decreasing)
+      mutate(across(starts_with("SNP"), ~ifelse(. == "unknown", "-", .)))  # Replace "unknown" with "-"
+    
+    # Write the decreasing data to a file for the current chromosome
+    write.table(decreasing_data, file = paste0("processed_data/teosinte_data/ZMP_chr", chr, "_decrease.txt"), 
+                sep = "\t", row.names = FALSE, col.names = TRUE)
+  })
+}
+```
+
+#### Running the functions for Maize and Teosinte (output files should end up in their respective folders, double check that they do)
+```{r}
+process_maize_data(maize_data)
+process_teosinte_data(teosinte_data)
+```
+
+## Part II - Visualization
+
+### Part II - Task 1: SNPs per Chromosome
+#### Plot the distribution of SNPs per chromosome. (https://eeob-biodata.github.io/EEOB546-R/06-data-visualization/index.htmland https://ggplot2.tidyverse.org/reference/geom_bar.html and https://r-graph-gallery.com/barplot.html)
+```{r}
+merged_maize$Species <- "Maize"
+merged_teosinte$Species <- "Teosinte"
+
+# Combine both datasets into one for easier comparison
+combined_data <- bind_rows(merged_maize, merged_teosinte)
+
+# Count SNPs per chromosome per species
+snp_counts <- combined_data %>%
+  group_by(Species, Chromosome) %>%
+  summarise(SNP_count = n()) %>%
+  ungroup()
+
+# Plot the data using ggplot2
+snp_plot <- ggplot(snp_counts, aes(x = as.factor(Chromosome), y = SNP_count, fill = Species)) +
+  geom_bar(stat = "identity", position = "dodge")
+  labs(title = "Distribution of SNPs on Chromosomes", 
+       x = "Chromosome", 
+       y = "Number of SNPs", 
+       fill = "Species") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Save the plot to the processed_data directory
+ggsave("processed_data/snp_distribution_plot.png", plot = snp_plot, width = 10, height = 6, dpi = 300)
+```
+
+### Part2 - Task 2: Missing Data and Amount of Heterozygosity
+
+```{r}
+head(merged_maize)
+head(merged_teosinte)
+```
+
+#### Plot the missing data and heterozygosity for each sample. (http://www.cookbook-r.com/Manipulating_data/Converting_data_between_wide_and_long_format/ and https://r-graph-gallery.com/barplot.html and https://www.geeksforgeeks.org/reshaping-data-frame-from-wide-to-long-format-in-r/ and https://eeob-biodata.github.io/EEOB546-R/05-data-transformation/index.html) --> I was able to normalize data but couldn't get anything to show for missing data
+```{r}
+calculate_hetero_proportions <- function(merged_data) {
+  # Reshape the data into a long format
+  data_long <- merged_data %>%
+    pivot_longer(cols = -c(SNP_ID, SampleGroup), names_to = "Sample", values_to = "Genotype") %>%
+    mutate(Type = case_when(
+      Genotype %in% c("A/A", "C/C", "G/G", "T/T") ~ "Homozygous",  # Homozygous genotypes
+      Genotype %in% c("unknown", "multiple", "?", "-") ~ "Missing",  # Missing data
+      TRUE ~ "Heterozygous"  # Heterozygous genotypes (everything else)
+    )) %>%
+    group_by(SampleGroup, Type) %>%
+    summarise(Num_SNPs = n(), .groups = "drop")  # Count SNPs per type
+  
+  return(data_long)
+}
+
+# Combine merged_maize and merged_teosinte into one data frame
+merged_data <- bind_rows(
+  mutate(merged_maize, SampleGroup = "Maize"),  # Add 'SampleGroup' column for maize
+  mutate(merged_teosinte, SampleGroup = "Teosinte")  # Add 'SampleGroup' column for teosinte
+)
+
+# Calculate proportions of homozygous, heterozygous, and missing SNPs
+hetero_data <- calculate_hetero_proportions(merged_data)
+
+# Plot the proportions of homozygous, heterozygous, and missing data for each sample and group
+hetero_plot <- ggplot(hetero_data, aes(x = SampleGroup, y = Num_SNPs, fill = Type)) +
+  geom_bar(stat = "identity", position = "fill") +  # Normalize bar heights to proportions
+  labs(title = "Proportion of Homozygous, Heterozygous, and Missing Data",
+       x = "Group",
+       y = "Proportion of SNPs",
+       fill = "SNP Type") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+
+# Save the plot to the processed_data directory
+ggsave("processed_data/hetero_proportions.png", plot = hetero_plot, width = 10, height = 6, dpi = 300)
+```
+
+### Part 2 - Task 3: Your Own Visualization (https://www.rdocumentation.org/packages/dplyr/versions/0.7.8/topics/filter and https://r-graph-gallery.com/barplot.html)
+```{r}
+process_homo_genotypes <- function(data, group) {
+  # Add a new column for group (Maize or Teosinte)
+  data$Group <- group
+  
+  # Reshape the data to long format
+  homo_genotypes <- data %>%
+    select(SNP_ID, Chromosome, starts_with("V"), Group) %>%  # Select relevant columns (SNP_ID, Chromosome, and V1-V4)
+    pivot_longer(cols = starts_with("V"), names_to = "Sample", values_to = "Genotype") %>%  # Reshape to long format
+    filter(Genotype %in% c("A/A", "G/G", "C/C", "T/T"))  # Filter for homo genotypes only
+  
+  # Count the occurrences of each homo genotype per chromosome
+  genotype_counts <- homo_genotypes %>%
+    group_by(Chromosome, Genotype, Group) %>%
+    tally() %>%
+    ungroup()
+  
+  return(genotype_counts)
+}
+
+# Function to plot homo counts by chromosome
+plot_homo_counts <- function(genotype_counts) {
+  if (nrow(genotype_counts) > 0) {
+    # Plot the homo counts per chromosome for all chromosomes
+    homo_plot <- ggplot(genotype_counts, aes(x = factor(Chromosome), y = n, fill = Group)) +
+      geom_bar(stat = "identity", position = "dodge") +
+      labs(title = "Number of Homo Genotypes per Chromosome", 
+           x = "Chromosome", 
+           y = "Number of Homo Genotypes") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+    
+    # Save the plot to the processed_data directory
+    ggsave("processed_data/homo_counts_per_chr_maize.png", plot = homo_plot, width = 8, height = 6)
+  } else {
+    print("No homo genotypes found.")
+  }
+}
+
+# Process maize data
+genotype_counts_maize <- process_homo_genotypes(merged_maize, "Maize")
+plot_homo_counts(genotype_counts_maize)
+```
