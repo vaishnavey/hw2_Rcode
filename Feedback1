@@ -1,0 +1,10 @@
+Hi,
+The format of the .Rmd is cleanly organized and easier to navigate.
+All code snippets worked when I tried to run them.
+Kindly check if the output files for maize and teosinte data if they have the correct replacement symbols for unknown data.
+When I tried to run them, I could see '?/?' in some of the output files, not sure if you see the same.
+I also observe that the sorting based on increasing and decreasing order are based on the position values alphanumerically (we need numerical sorting).
+The plot visualisation scripts also work fine.
+The first plot also required proportion of missing data, on each-sample and each-group basis.
+The readme file was self-explanatory.
+Thanks for reading my review.
