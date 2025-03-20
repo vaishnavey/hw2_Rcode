@@ -109,8 +109,6 @@ nrow(sorted_trans_maize)  # Transposed maize genotypes data
 # Merge the SNP positions and sorted maize genotypes by SNP_ID
 merged_maize <- inner_join(snp_clean, sorted_trans_maize, by = "SNP_ID")
 
-# Proceed with your data processing
-
 # Save the merged data
 write.table(merged_maize, "processed_data/maize_data/merged_maize.txt", sep = "\t", row.names = FALSE)
 ```
@@ -141,7 +139,6 @@ nrow(sorted_trans_teosinte)  # Transposed teosinte genotypes data
 # Merge the SNP positions and sorted teosinte genotypes by SNP_ID
 merged_teosinte <- inner_join(snp_clean, sorted_trans_teosinte, by = "SNP_ID")
 
-# Proceed with your data processing (e.g., save the merged data)
 write.table(merged_teosinte, "processed_data/teosinte_data/merged_teosinte.txt", sep = "\t", row.names = FALSE)
 ```
 
@@ -188,7 +185,6 @@ process_teosinte_data <- function(teosinte_data) {
       arrange(Position) %>%                    # Order SNPs by their position (increasing)
       mutate(across(starts_with("SNP"), ~ifelse(. == "unknown", "?", .)))  # Replace "unknown" with "?"
     
-    # Write the increasing data to a file for the current chromosome
     write.table(increasing_data, file = paste0("processed_data/teosinte_data/ZMP_chr", chr, "_increase.txt"), 
                 sep = "\t", row.names = FALSE, col.names = TRUE)
     
@@ -198,8 +194,7 @@ process_teosinte_data <- function(teosinte_data) {
       filter(Chromosome == chr) %>%            # Keep only rows with the current chromosome
       arrange(desc(Position)) %>%              # Order SNPs by their position (decreasing)
       mutate(across(starts_with("SNP"), ~ifelse(. == "unknown", "-", .)))  # Replace "unknown" with "-"
-    
-    # Write the decreasing data to a file for the current chromosome
+
     write.table(decreasing_data, file = paste0("processed_data/teosinte_data/ZMP_chr", chr, "_decrease.txt"), 
                 sep = "\t", row.names = FALSE, col.names = TRUE)
   })
@@ -321,7 +316,7 @@ plot_homo_counts <- function(genotype_counts) {
            x = "Chromosome", 
            y = "Number of Homo Genotypes") +
       theme_minimal() +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
     
     # Save the plot to the processed_data directory
     ggsave("processed_data/homo_counts_per_chr_maize.png", plot = homo_plot, width = 8, height = 6)
