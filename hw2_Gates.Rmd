@@ -11,7 +11,7 @@ I wanted the format of this R code to match my batch script from homework 1 so t
 
 ### Before we begin, we install and load the necessary packages. (I had to do this because my RStudio had me install first)
 ```{r}
-#install.packages(c("tidyr", "readr"))
+install.packages(c("tidyr", "readr"))
 ```
 
 ### Load Libraries
@@ -28,6 +28,16 @@ dir.create("raw_data", showWarnings = FALSE)
 
 # Backup raw data
 file.copy(c("fang_et_al_genotypes.txt", "snp_position.txt"), "raw_data/")
+```
+
+#### Create output directories for their respective output files. This allows for the data to be separted according to where it came from ie Maize or Teosinte (refer to https://stackoverflow.com/questions/4216753/folder-management-with-r-check-existence-of-directory-and-create-it-if-it-does)
+```{r}
+# Create output directory for processed data
+dir.create("processed_data", showWarnings = FALSE)
+
+# Create directories for maize and teosinte data
+dir.create("processed_data/maize_data", showWarnings = FALSE)
+dir.create("processed_data/teosinte_data", showWarnings = FALSE)
 ```
 
 ### Load Data - Fang and SNP (refer to https://www.rdocumentation.org/packages/readr/versions/2.1.5/topics/read_table and https://eeob-biodata.github.io/EEOB546-R/05-data-transformation/index.html and https://builtin.com/articles/pipe-in-r)
@@ -69,16 +79,6 @@ colnames(snp_positions)
 snp_clean <- snp_positions %>%
   select(SNP_ID, Chromosome, Position) %>%
   arrange(SNP_ID)
-```
-
-#### Create output directories for their respective output files. This allows for the data to be separted according to where it came from ie Maize or Teosinte (refer to https://stackoverflow.com/questions/4216753/folder-management-with-r-check-existence-of-directory-and-create-it-if-it-does)
-```{r}
-# Create output directory for processed data
-dir.create("processed_data", showWarnings = FALSE)
-
-# Create directories for maize and teosinte data
-dir.create("processed_data/maize_data", showWarnings = FALSE)
-dir.create("processed_data/teosinte_data", showWarnings = FALSE)
 ```
 
 ### Part 1 - Task 2: Processing Maize and Teosinte Data
